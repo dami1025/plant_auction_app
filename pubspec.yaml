@@ -1,0 +1,29 @@
+name: auction_demo
+description: A Flutter Firebase auction demo
+publish_to: "none"
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+version: 1.0.0+1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  firebase_core: ^3.4.0
+  cloud_firestore: ^5.4.4
+  firebase_storage: ^12.3.1
+  firebase_auth: ^5.3.1
+  firebase_analytics: ^11.6.0
+  flutter_countdown_timer: ^4.1.0
+  dio: ^5.9.0
+
+dev_dependencies:
+  custom_lint: ^0.7.6
+  flutter_test:
+    sdk: flutter
+  riverpod_lint: ^2.6.5
+
+flutter:
+  uses-material-design: true
