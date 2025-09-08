@@ -1,0 +1,1 @@
+ /Users/duong/Downloads/auction_demo/.dart_tool/flutter_build/c347277f5ab55a775b27e36d600f6870/native_assets.json: 
