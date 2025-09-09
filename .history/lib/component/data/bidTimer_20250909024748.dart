@@ -120,7 +120,7 @@ class BidSessionNotifier extends StateNotifier<BidSessionState> {
     }
 
     FirebaseFirestore.instance
-        .collection('item1') 
+        .collection('items') 
         .doc(docId)
         .update(data)
         .then((_) => print('Updated bidSessionStatus: $status'))
@@ -129,7 +129,7 @@ class BidSessionNotifier extends StateNotifier<BidSessionState> {
 
   void _listenToBidUpdates() {
     _subscription = FirebaseFirestore.instance
-        .collection('item1')
+        .collection('items')
         .doc(docId)
         .snapshots()
         .listen((snapshot) {

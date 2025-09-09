@@ -18,11 +18,11 @@
 		</data>
 		<key>Modules/firebase_analytics.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo</key>
 		<data>
-		fs8cKsvK4qY7pUbqWUKzK3mNVec=
+		pYR2onl76CW/KEqq5/AMAI0dJ6E=
 		</data>
 		<key>Modules/firebase_analytics.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo</key>
 		<data>
-		QQ6OGevls7vt78tFsVtyXHIBsJY=
+		R75WpnTtyLuOxJL+xp+qg70i5UM=
 		</data>
 		<key>Modules/firebase_analytics.swiftmodule/arm64-apple-ios-simulator.abi.json</key>
 		<data>
@@ -81,22 +81,22 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			fs8cKsvK4qY7pUbqWUKzK3mNVec=
+			pYR2onl76CW/KEqq5/AMAI0dJ6E=
 			</data>
 			<key>hash2</key>
 			<data>
-			kXBtg/iE8+3KK5e+ZAmr5hEiv03tU/I0bQ90CneJbJ0=
+			RFA09Lw8zfFUMk5RIIFrDke7Y5HMwtIWzkoVQCOo91g=
 			</data>
 		</dict>
 		<key>Modules/firebase_analytics.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			QQ6OGevls7vt78tFsVtyXHIBsJY=
+			R75WpnTtyLuOxJL+xp+qg70i5UM=
 			</data>
 			<key>hash2</key>
 			<data>
-			SEqRtujTXVcDyQa1vddVtIHFCTCWSd2RsE3MdF3ler0=
+			7DQBQBZyRTQ08Mn0INKPSQP0pDqkdaPyAvIwQWrEvWU=
 			</data>
 		</dict>
 		<key>Modules/firebase_analytics.swiftmodule/arm64-apple-ios-simulator.abi.json</key>

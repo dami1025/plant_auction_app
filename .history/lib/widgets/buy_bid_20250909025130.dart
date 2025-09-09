@@ -1,8 +1,9 @@
-import 'package:auction_demo/component/bidTimer.dart';
+
+import 'package:auction_demo/component/data/bidTimer.dart';
 import 'package:auction_demo/component/data/firestore.dart';
 import 'package:auction_demo/component/data/riverpod.dart';
-import 'package:auction_demo/component/item_price.dart' hide bidSessionProvider; 
 import 'package:auction_demo/screens/constants.dart';
+import 'package:auction_demo/widgets/item_price.dart' hide bidSessionProvider;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,7 +39,7 @@ class PlaceBidButton extends ConsumerWidget {
   }
 
   void _showBidDialog(BuildContext context, WidgetRef ref) async {
-    final doc = await FirebaseFirestore.instance.collection('item1').doc(docId).get();
+    final doc = await FirebaseFirestore.instance.collection('items').doc(docId).get();
     final currentPrice = (doc.data()?['price'] ?? 0).toDouble();
     final controller = TextEditingController();
     String? errorText;
@@ -67,7 +68,7 @@ class PlaceBidButton extends ConsumerWidget {
                   return;
                 }
                 try {
-                  await FirebaseFirestore.instance.collection('item1').doc(docId).update({
+                  await FirebaseFirestore.instance.collection('items').doc(docId).update({
                     'price': bid,
                     'bidderCount': FieldValue.increment(1),
                   });
@@ -118,7 +119,7 @@ class FavoriteButton extends ConsumerWidget {
               onPressed: () async {
                 try {
                   await FirebaseFirestore.instance
-                      .collection('item1')
+                      .collection('items')
                       .doc(docId)
                       .update({'favoriteCount': FieldValue.increment(1)});
                   ScaffoldMessenger.of(context).showSnackBar(

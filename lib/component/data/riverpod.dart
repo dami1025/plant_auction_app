@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+//connects Firestore with UI reactively using Riverpod.
 // Collection reference
-final itemsCollection = FirebaseFirestore.instance.collection('item1');
+final itemsCollection = FirebaseFirestore.instance.collection('items');
 
 // Provider for getting all items from the collection
 final itemsCollectionProvider = StreamProvider<List<QueryDocumentSnapshot<Map<String, dynamic>>>>((ref) {
@@ -16,15 +16,3 @@ final itemProvider = StreamProvider.family<DocumentSnapshot<Map<String, dynamic>
   },
 );
 
-// If you have a FirestoreService class, you can also use it like this:
-// class FirestoreService {
-//   final CollectionReference<Map<String, dynamic>> itemsCollection = 
-//       FirebaseFirestore.instance.collection('item1');
-// }
-// 
-// final firestoreServiceProvider = Provider((ref) => FirestoreService());
-// 
-// final itemsCollectionProvider = StreamProvider<List<QueryDocumentSnapshot<Map<String, dynamic>>>>((ref) {
-//   final service = ref.watch(firestoreServiceProvider);
-//   return service.itemsCollection.snapshots().map((snapshot) => snapshot.docs);
-// });

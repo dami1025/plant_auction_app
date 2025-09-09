@@ -1,22 +1,83 @@
 import 'dart:async';
-import 'package:auction_demo/component/bidTimer.dart';
 import 'package:auction_demo/component/countdown_timer.dart';
 import 'package:auction_demo/screens/constants.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+// Bidding Session State Management
+enum BiddingSessionStatus {
+  notStarted,
+  active,
+  ended,
+  cancelled,
+}
+
+class BiddingSessionState {
+  final BiddingSessionStatus status;
+  final DateTime? sessionEndTime;
+  final DateTime? startTime;
+  final int bidCount;
+  final DateTime? lastBidTime;
+
+  const BiddingSessionState({
+    required this.status,
+    this.sessionEndTime,
+    this.startTime,
+    required this.bidCount,
+    this.lastBidTime,
+  });
+
+  BiddingSessionState copyWith({
+    BiddingSessionStatus? status,
+    DateTime? sessionEndTime,
+    DateTime? startTime,
+    int? bidCount,
+    DateTime? lastBidTime,
+  }) {
+    return BiddingSessionState(
+      status: status ?? this.status,
+      sessionEndTime: sessionEndTime,
+      startTime: startTime ?? this.startTime,
+      bidCount: bidCount ?? this.bidCount,
+      lastBidTime: lastBidTime ?? this.lastBidTime,
+    );
+  }
+}
 
 
-/// Riverpod provider
-final bidSessionProvider = StateNotifierProvider.family
-    <BidSessionNotifier, BidSessionState, String>(
-        (ref, docId) => BidSessionNotifier(docId));
 
+  void _updateFirestoreStatus(String status) {
+    FirebaseFirestore.instance
+        .collection('items')
+        .doc(itemId)
+        .update({'sessionStatus': status})
+        .catchError((error) {
+      print('Error updating session status: $error');
+    });
+  }
+
+  @override
+  void dispose() {
+    _sessionTimer?.cancel();
+    _firestoreSubscription?.cancel();
+    super.dispose();
+  }
+}
+
+// Riverpod Provider
+final biddingSessionProvider = StateNotifierProvider.family
+    <BiddingSessionNotifier, BiddingSessionState, String>(
+  (ref, itemId) => BiddingSessionNotifier(itemId),
+);
+
+// Updated BuildItemList Widget
 class BuildItemList extends ConsumerWidget {
   final QueryDocumentSnapshot<Map<String, dynamic>> selectedItem;
   final List<QueryDocumentSnapshot<Map<String, dynamic>>> allItems;
-  final void Function(QueryDocumentSnapshot<Map<String, dynamic>>) onItemSelected;
+  final void Function(QueryDocumentSnapshot<Map<String, dynamic>>)
+      onItemSelected;
 
   const BuildItemList({
     super.key,
@@ -25,6 +86,7 @@ class BuildItemList extends ConsumerWidget {
     required this.onItemSelected,
   });
 
+  // Constants for styling
   static const double _imageSize = 40;
   static const double _iconSize = 20;
   static const double _loadingIndicatorSize = 15;
@@ -35,21 +97,22 @@ class BuildItemList extends ConsumerWidget {
     final data = selectedItem.data();
     final title = data['title'] ?? 'No Title';
     final price = data['price']?.toString() ?? '0';
-    final endTimestamp = data['endTime'] is Timestamp
-        ? (data['endTime'] as Timestamp).toDate()
-        : data['endTime'] as DateTime?;
+    final endTimestamp = data['endTime'];
     final bidderCount = data['bidderCount']?.toString() ?? '0';
     final favoriteCount = data['favoriteCount'] ?? 0;
 
-    final bidSessionState = ref.watch(bidSessionProvider(selectedItem.id));
+    // Watch bidding session state
+    final biddingSessionState = ref.watch(biddingSessionProvider(selectedItem.id));
 
     return Column(
       children: [
+        // Display the selected item
         Padding(
           padding: const EdgeInsets.only(top: 10, left: 15, right: 15),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Title
               Text(
                 title,
                 style: const TextStyle(
@@ -59,29 +122,11 @@ class BuildItemList extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
 
-              // Bid Session Status
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _getBidSessionColor(bidSessionState.status).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _getBidSessionColor(bidSessionState.status)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.access_time,
-                      color: _getBidSessionColor(bidSessionState.status),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    _getBidSessionWidget(bidSessionState, ref, selectedItem.id),
-                  ],
-                ),
-              ),
+              // Bidding Session Status Chip
+              _buildBiddingSessionChip(biddingSessionState),
               const SizedBox(height: 8),
 
+              // Price + Best Offer + Favorite count
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -101,11 +146,13 @@ class BuildItemList extends ConsumerWidget {
               ),
 
               const SizedBox(height: 4),
-              _buildBidCountdownSection(bidderCount, endTimestamp),
+              // Bid count + bullet + countdown
+              _buildBidCountdownSection(bidderCount, endTimestamp, biddingSessionState),
             ],
           ),
         ),
 
+        // Optional: Add a section to switch between items
         if (allItems.length > 1) ...[
           const SizedBox(height: 20),
           _buildItemSelector(),
@@ -114,73 +161,71 @@ class BuildItemList extends ConsumerWidget {
     );
   }
 
-  Color _getBidSessionColor(BidSessionStatus status) {
-    switch (status) {
-      case BidSessionStatus.notStarted:
-        return Colors.orange;
-      case BidSessionStatus.active:
-        return Colors.green;
-      case BidSessionStatus.ended:
-        return Colors.red;
-      case BidSessionStatus.canceled:
-        return Colors.grey;
-    }
-  }
+  Widget _buildBiddingSessionChip(BiddingSessionState sessionState) {
+    Color chipColor;
+    String chipText;
+    Widget? countdownWidget;
 
-  Widget _getBidSessionWidget(BidSessionState bidSessionState, WidgetRef ref, String docId) {
-    switch (bidSessionState.status) {
-      case BidSessionStatus.notStarted:
-        return Text(
-          'Bid session starts soon',
-          style: TextStyle(
-            color: _getBidSessionColor(bidSessionState.status),
-            fontWeight: FontWeight.w500,
-          ),
-        );
-      case BidSessionStatus.active:
-        if (bidSessionState.sessionEndTime != null) {
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Bid session ends in ',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-              BidSessionCountdown(
-                endTime: bidSessionState.sessionEndTime!,
-                textColor: _getBidSessionColor(bidSessionState.status),
-                fontWeight: FontWeight.bold,
-                onCountdownEnd: () {
-                  ref.read(bidSessionProvider(docId).notifier).endOrCancelSession();
-                },
-              ),
-            ],
+    switch (sessionState.status) {
+      case BiddingSessionStatus.notStarted:
+        chipColor = Colors.orange;
+        chipText = 'Bidding starts soon';
+        break;
+      case BiddingSessionStatus.active:
+        chipColor = Colors.green;
+        chipText = 'Live Bidding';
+        if (sessionState.sessionEndTime != null) {
+          countdownWidget = Text(
+            ' • Ends in ',
+            style: TextStyle(color: chipColor, fontSize: 12),
           );
         }
-        return Text(
-          'Bid session active',
-          style: TextStyle(
-            color: _getBidSessionColor(bidSessionState.status),
-            fontWeight: FontWeight.w500,
-          ),
-        );
-      case BidSessionStatus.ended:
-        return Text(
-          'Bid session ended',
-          style: TextStyle(
-            color: _getBidSessionColor(bidSessionState.status),
-            fontWeight: FontWeight.w500,
-          ),
-        );
-      case BidSessionStatus.canceled:
-        return Text(
-          'Bid session canceled',
-          style: TextStyle(
-            color: _getBidSessionColor(bidSessionState.status),
-            fontWeight: FontWeight.w500,
-          ),
-        );
+        break;
+      case BiddingSessionStatus.ended:
+        chipColor = Colors.blue;
+        chipText = 'Bidding Ended';
+        break;
+      case BiddingSessionStatus.cancelled:
+        chipColor = Colors.red;
+        chipText = 'Bidding Cancelled';
+        break;
     }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: chipColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: chipColor, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            sessionState.status == BiddingSessionStatus.active
+                ? Icons.gavel
+                : Icons.access_time,
+            size: 16,
+            color: chipColor,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            chipText,
+            style: TextStyle(
+              color: chipColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+          if (countdownWidget != null) countdownWidget,
+          if (sessionState.sessionEndTime != null && sessionState.status == BiddingSessionStatus.active)
+            SessionCountdown(
+              endTime: sessionState.sessionEndTime!,
+              textColor: chipColor,
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPriceSection(String price) {
@@ -238,37 +283,46 @@ class BuildItemList extends ConsumerWidget {
     );
   }
 
-  Widget _buildBidCountdownSection(String bidderCount, dynamic endTimestamp) {
-  DateTime? endTime;
-
-  if (endTimestamp != null) {
-    if (endTimestamp is Timestamp) {
-      endTime = endTimestamp.toDate();
-    } else if (endTimestamp is DateTime) {
-      endTime = endTimestamp;
-    }
-  }
-
-  return Row(
-    children: [
-      Text(
-        "$bidderCount bid",
-        style: const TextStyle(
-          fontSize: 16,
-          color: Color.fromARGB(255, 13, 13, 13),
-          fontWeight: FontWeight.w400,
+  Widget _buildBidCountdownSection(
+    String bidderCount, 
+    dynamic endTimestamp, 
+    BiddingSessionState sessionState
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              "$bidderCount bid${int.parse(bidderCount) == 1 ? '' : 's'}",
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color.fromARGB(255, 13, 13, 13),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Text("•", style: TextStyle(fontSize: 16)),
+            const SizedBox(width: 4),
+            const Text("Ends in ", style: TextStyle(fontSize: 16)),
+            if (endTimestamp != null) CountdownText(endTime: endTimestamp),
+          ],
         ),
-      ),
-      const SizedBox(width: 4),
-      const Text("•", style: TextStyle(fontSize: 16)),
-      const SizedBox(width: 4),
-      const Text("Ends in ", style: TextStyle(fontSize: 16)),
-      if (endTime != null)
-        CountdownText(endTime: endTime),
-    ],
-  );
-}
-
+        if (sessionState.status == BiddingSessionStatus.active && sessionState.bidCount == 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              "⚠️ Session will be cancelled in 2 minutes without bids",
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.orange[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
   Widget _buildItemSelector() {
     return Padding(
@@ -298,12 +352,15 @@ class BuildItemList extends ConsumerWidget {
                   onTap: () => onItemSelected(item),
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: isSelected ? kPrimaryColor : Colors.grey[200],
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSelected ? kPrimaryColor : Colors.grey[300]!,
+                        color: isSelected
+                            ? kPrimaryColor
+                            : Colors.grey[300]!,
                       ),
                     ),
                     child: ClipRRect(
@@ -314,7 +371,9 @@ class BuildItemList extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           border: Border.all(
-                            color: isSelected ? Colors.white : Colors.transparent,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.transparent,
                             width: 2,
                           ),
                         ),
@@ -371,14 +430,17 @@ class BuildItemList extends ConsumerWidget {
       final storage = FirebaseStorage.instance;
       final ref = storage.ref().child(folderPath);
       
+      // List all items in the folder
       final listResult = await ref.listAll();
       
       if (listResult.items.isEmpty) {
         return null;
       }
       
+      // Sort items by name to get consistent "first" image
       listResult.items.sort((a, b) => a.name.compareTo(b.name));
       
+      // Get download URL for the first image
       final firstImageRef = listResult.items.first;
       return await firstImageRef.getDownloadURL();
     } catch (e) {
@@ -416,6 +478,79 @@ class BuildItemList extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Custom Countdown Widget for Bidding Session
+class SessionCountdown extends StatefulWidget {
+  final DateTime endTime;
+  final Color textColor;
+
+  const SessionCountdown({
+    Key? key,
+    required this.endTime,
+    required this.textColor,
+  }) : super(key: key);
+
+  @override
+  State<SessionCountdown> createState() => _SessionCountdownState();
+}
+
+class _SessionCountdownState extends State<SessionCountdown> {
+  Timer? _timer;
+  Duration _remainingTime = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateRemainingTime();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _updateRemainingTime();
+    });
+  }
+
+  void _updateRemainingTime() {
+    final now = DateTime.now();
+    final remaining = widget.endTime.difference(now);
+    
+    if (remaining.isNegative) {
+      setState(() => _remainingTime = Duration.zero);
+      _timer?.cancel();
+    } else {
+      setState(() => _remainingTime = remaining);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_remainingTime == Duration.zero) {
+      return Text(
+        '0s',
+        style: TextStyle(
+          color: widget.textColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      );
+    }
+
+    final minutes = _remainingTime.inMinutes;
+    final seconds = _remainingTime.inSeconds % 60;
+    
+    return Text(
+      minutes > 0 ? '${minutes}m ${seconds}s' : '${seconds}s',
+      style: TextStyle(
+        color: widget.textColor,
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
       ),
     );
   }
