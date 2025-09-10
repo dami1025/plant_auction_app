@@ -167,3 +167,42 @@ at:
 #1      Future.any.onValue (dart:async/future.dart:616)
 <asynchronous suspension>
 
+[custom_lint] 2025-09-09T04:40:28.817772 Loading dynamic library failed: not a Mach-O shared object
+[custom_lint] 2025-09-09T04:40:28.817772 lib/custom_lint_client.dart is not an AOT snapshot, it cannot be run with 'dartaotruntime'
+[custom_lint] 2025-09-09T04:40:28.817772
+[custom_lint] 2025-09-09T04:40:28.817772
+Failed to start pluginsThe request analysis.setContextRoots failed with the following error:
+RequestErrorCode.PLUGIN_ERROR
+Bad state: Failed to start the plugins.
+at:
+#0      SocketCustomLintServerToClientChannel._checkInitializationFail.<anonymous closure> (package:custom_lint/src/v2/server_to_client_channel.dart:223)
+<asynchronous suspension>
+#1      Future.any.onValue (dart:async/future.dart:616)
+<asynchronous suspension>
+
+[custom_lint] 2025-09-09T04:45:29.375951 Loading dynamic library failed: not a Mach-O shared object
+[custom_lint] 2025-09-09T04:45:29.375951 lib/custom_lint_client.dart is not an AOT snapshot, it cannot be run with 'dartaotruntime'
+[custom_lint] 2025-09-09T04:45:29.375951
+[custom_lint] 2025-09-09T04:45:29.375951
+Failed to start pluginsThe request analysis.setContextRoots failed with the following error:
+RequestErrorCode.PLUGIN_ERROR
+Bad state: Failed to start the plugins.
+at:
+#0      SocketCustomLintServerToClientChannel._checkInitializationFail.<anonymous closure> (package:custom_lint/src/v2/server_to_client_channel.dart:223)
+<asynchronous suspension>
+#1      Future.any.onValue (dart:async/future.dart:616)
+<asynchronous suspension>
+
+[custom_lint] 2025-09-09T22:40:42.145298 Loading dynamic library failed: not a Mach-O shared object
+[custom_lint] 2025-09-09T22:40:42.145298 lib/custom_lint_client.dart is not an AOT snapshot, it cannot be run with 'dartaotruntime'
+[custom_lint] 2025-09-09T22:40:42.145298
+[custom_lint] 2025-09-09T22:40:42.145298
+Failed to start pluginsThe request analysis.setContextRoots failed with the following error:
+RequestErrorCode.PLUGIN_ERROR
+Bad state: Failed to start the plugins.
+at:
+#0      SocketCustomLintServerToClientChannel._checkInitializationFail.<anonymous closure> (package:custom_lint/src/v2/server_to_client_channel.dart:223)
+<asynchronous suspension>
+#1      Future.any.onValue (dart:async/future.dart:616)
+<asynchronous suspension>
+
