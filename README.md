@@ -166,3 +166,6 @@ Countdown Timers
    └─ SessionCountdown / BidSessionCountdown → precise countdown (min/sec) for active sessions
          └─ Updates UI every second via Timer
 ```
+<img width="1290" height="2796" alt="Simulator Screenshot - iPhone 14 Pro Max - 2025-09-11 at 17 20 51" src="https://github.com/user-attachments/assets/3deaf33a-b439-4bf6-bbc1-c15f06e14ef5" />
+
+<img width="1290" height="2796" alt="Simulator Screenshot - iPhone 14 Pro Max - 2025-09-11 at 17 21 02" src="https://github.com/user-attachments/assets/6935b2bb-c3cf-4821-ab51-126b8d53a700" />
